@@ -14,6 +14,7 @@ public class SecurityConfig
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> {})   // ADD THIS
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -25,6 +26,7 @@ public class SecurityConfig
                         .requestMatchers("/banks/**").permitAll()
                         .anyRequest().permitAll()
                 );
+
         return http.build();
     }
 }
