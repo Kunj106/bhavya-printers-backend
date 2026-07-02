@@ -270,4 +270,58 @@ public class AuthController {
                 new MessageResponseDto("Login Successful")
         );
     }
+
+    @PostMapping("/bank/forgot-password/verify-otp")
+    public ResponseEntity<?> verifyForgotOtp(
+            @RequestBody VerifyOtpRequest request){
+
+        if(!otpService.verifyOtp(
+                request.getEmail(),
+                request.getOtp()))
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponseDto("Invalid OTP"));
+
+        return ResponseEntity.ok(
+                new MessageResponseDto("OTP Verified"));
+
+    }
+    @PostMapping("/bank/forgot-password/send-otp")
+    public ResponseEntity<?> sendForgotOtp(
+            @RequestBody ForgotPasswordRequest request){
+
+        if(!bankService.existsByEmail(request.getEmail()))
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponseDto("Email not registered"));
+
+        String otp = otpService.generateOtp(request.getEmail());
+
+        emailService.sendOtp(request.getEmail(),otp);
+
+        return ResponseEntity.ok(
+                new MessageResponseDto("OTP sent successfully"));
+    }
+    @PostMapping("/bank/forgot-password/reset-password")
+    public ResponseEntity<?> resetPassword(
+            @RequestBody ResetPasswordRequest request){
+
+        if(!otpService.isEmailVerified(request.getEmail()))
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponseDto("Verify OTP first"));
+
+        Bank bank = bankService.findEntityByEmail(request.getEmail());
+
+        bank.setPassword(
+                settingsService.hashPassword(
+                        request.getPassword()
+                )
+        );
+
+        bankService.save(bank);
+
+        otpService.clearVerification(request.getEmail());
+
+        return ResponseEntity.ok(
+                new MessageResponseDto("Password updated"));
+
+    }
 }

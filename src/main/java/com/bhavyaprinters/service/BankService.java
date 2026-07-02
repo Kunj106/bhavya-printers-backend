@@ -75,4 +75,12 @@ public class BankService {
         return bankRepository.findAllByOrderByCreatedAtAsc();
     }
 
+    public Bank findEntityByEmail(String email){
+        return bankRepository.findByEmail(email)
+                .orElseThrow();
+    }
+
+    public void save(Bank bank){
+        bankRepository.save(bank);
+    }
 }
