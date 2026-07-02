@@ -1,5 +1,6 @@
 package com.bhavyaprinters.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -58,6 +59,9 @@ public class NotificationService {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    @Autowired
+    private EmailService emailService;
+
     // ─── Public API ───────────────────────────────────────────────────────
 
     /** Called when a new order is placed. */
@@ -82,6 +86,10 @@ public class NotificationService {
 
         sendSms(mobile, smsMsg);
         sendWhatsApp(mobile, waMsg);
+    }
+
+    public void sendOtpEmail(String email, String otp) {
+        emailService.sendOtp(email, otp);
     }
 
     /** Called when admin updates the order status. */
