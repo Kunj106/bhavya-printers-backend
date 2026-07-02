@@ -135,13 +135,35 @@ public class AuthController {
 
     @PostMapping("/bank/register")
     public ResponseEntity<?> registerBank(@Valid @RequestBody BankRegisterInputDto input) {
+
         if (bankService.existsByEmail(input.getEmail()))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDto("Email already registered"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponseDto("Email already registered"));
+
+        if (!otpService.isEmailVerified(input.getEmail())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponseDto("Please verify your email first."));
+        }
+
         String passwordHash = settingsService.hashPassword(input.getPassword());
-        BankDto bank = bankService.createBank(input.getBankName(), input.getBranchName(), input.getGstNo(), input.getPanNo(),
-                input.getAddress(), input.getMobile(), input.getEmail(), passwordHash);
+
+        BankDto bank = bankService.createBank(
+                input.getBankName(),
+                input.getBranchName(),
+                input.getGstNo(),
+                input.getPanNo(),
+                input.getAddress(),
+                input.getMobile(),
+                input.getEmail(),
+                passwordHash
+        );
+
+        otpService.clearVerification(input.getEmail());
+
         String token = tokenService.generateToken(bank.getId(), "bank");
-        return ResponseEntity.status(HttpStatus.CREATED).body(new BankAuthResultDto(token, "bank", bank));
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BankAuthResultDto(token, "bank", bank));
     }
 
     @PostMapping("/bank/login")

@@ -25,6 +25,17 @@ public class Otp
     @Column(nullable = false)
     private LocalDateTime expiryTime;
 
+    @Column(nullable = false)
+    private boolean verified;
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
+    }
+
     public Long getId() {
         return id;
     }

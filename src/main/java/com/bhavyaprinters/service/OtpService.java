@@ -16,7 +16,7 @@ public class OtpService
 {
     private final OtpRepository otpRepository;
 
-    public String generateOtp(String email){
+    public String generateOtp(String email) {
 
         otpRepository.deleteByEmail(email);
 
@@ -26,6 +26,7 @@ public class OtpService
                 .email(email)
                 .otp(otp)
                 .expiryTime(LocalDateTime.now().plusMinutes(5))
+                .verified(false)
                 .build();
 
         otpRepository.save(entity);
@@ -33,23 +34,39 @@ public class OtpService
         return otp;
     }
 
-    public boolean verifyOtp(String email,String otp){
+    public boolean verifyOtp(String email, String otp) {
 
         Otp entity = otpRepository.findByEmail(email).orElse(null);
 
-        if(entity==null)
+        if (entity == null)
             return false;
 
-        if(entity.getExpiryTime().isBefore(LocalDateTime.now())){
+        if (entity.getExpiryTime().isBefore(LocalDateTime.now())) {
             otpRepository.delete(entity);
             return false;
         }
 
-        if(!entity.getOtp().equals(otp))
+        if (!entity.getOtp().equals(otp))
             return false;
 
-        otpRepository.delete(entity);
+        entity.setVerified(true);
+
+        otpRepository.save(entity);
 
         return true;
+    }
+
+    public boolean isEmailVerified(String email) {
+
+        Otp entity = otpRepository.findByEmail(email).orElse(null);
+
+        return entity != null && entity.isVerified();
+
+    }
+
+    public void clearVerification(String email) {
+
+        otpRepository.deleteByEmail(email);
+
     }
 }
