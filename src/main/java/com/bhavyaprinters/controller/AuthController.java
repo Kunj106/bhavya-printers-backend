@@ -25,6 +25,8 @@ public class AuthController {
     private final TokenService        tokenService;
     private final NotificationService notificationService;
     private final WhatsappService whatsappService;
+    private final OtpService otpService;
+    private final EmailService emailService;
 
     @Value("${google.admin.email:}")
     private String adminGoogleEmail;
@@ -218,5 +220,32 @@ public class AuthController {
 
         Bank bank = bankOpt.get();
         return ResponseEntity.ok(new BankAuthResultDto(tokenService.generateToken(bank.getId(), "bank"), "bank", bankService.toDto(bank)));
+    }
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOtp(@RequestBody SendOtpRequest request){
+
+        String otp = otpService.generateOtp(request.getEmail());
+
+        emailService.sendOtp(request.getEmail(),otp);
+
+        return ResponseEntity.ok(new MessageResponseDto("OTP Sent Successfully"));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
+
+        boolean verified = otpService.verifyOtp(
+                request.getEmail(),
+                request.getOtp()
+        );
+
+        if (!verified)
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponseDto("Invalid or Expired OTP"));
+
+        return ResponseEntity.ok(
+                new MessageResponseDto("Login Successful")
+        );
     }
 }
