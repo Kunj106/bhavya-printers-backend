@@ -1,8 +1,11 @@
 package com.bhavyaprinters.service;
 
+import com.bhavyaprinters.entity.AdminSettings;
+import com.bhavyaprinters.repository.AdminSettingsRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,27 +18,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class SettingsService {
 
-    @Value("${app.settings.path:data/settings.json}")
-    private String settingsPath;
+    private final AdminSettingsRepository repository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @Getter private String adminUsername     = "admin";
-    @Getter private String adminPasswordHash;
-    @Getter private String upiId            = "bhavyaprinters@sbi";
-    @Getter private String upiQrCode        = null;
-    @Getter private String adminMobile      = null;
-    @Getter private String fast2smsApiKey   = null;
-    @Getter private int    gstRate          = 18; // default 18%
-
+    private static final Long SETTINGS_ID = 1L;
     private static final String SALT = "bhavya_salt_1996";
 
-    @PostConstruct
-    public void init() {
-        adminPasswordHash = hashPassword("bhavya1996");
-        load();
+    private AdminSettings getOrCreate() {
+        return repository.findById(SETTINGS_ID).orElseGet(() -> {
+            AdminSettings s = new AdminSettings();
+            s.setId(SETTINGS_ID);
+            return repository.save(s);
+        });
     }
 
     public String hashPassword(String password) {
@@ -50,56 +46,59 @@ public class SettingsService {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void load() {
-        File file = new File(settingsPath);
-        if (!file.exists()) { save(); return; }
-        try {
-            Map<String, Object> data = objectMapper.readValue(file, Map.class);
-            if (data.containsKey("adminUsername"))     adminUsername     = (String) data.get("adminUsername");
-            if (data.containsKey("adminPasswordHash")) adminPasswordHash = (String) data.get("adminPasswordHash");
-            if (data.containsKey("upiId"))             upiId             = (String) data.get("upiId");
-            if (data.containsKey("upiQrCode"))         upiQrCode         = (String) data.get("upiQrCode");
-            if (data.containsKey("adminMobile"))       adminMobile       = (String) data.get("adminMobile");
-            if (data.containsKey("fast2smsApiKey"))    fast2smsApiKey    = (String) data.get("fast2smsApiKey");
-            if (data.containsKey("gstRate"))           gstRate           = (int) data.get("gstRate");
-        } catch (IOException e) { /* keep defaults */ }
+    // ── Admin identity ──────────────────────────────────────────────
+    public String getAdminUsername()     { return getOrCreate().getAdminUsername(); }
+    public String getAdminEmail()        { return getOrCreate().getAdminEmail(); }
+    public String getAdminPasswordHash() { return getOrCreate().getAdminPasswordHash(); }
+    public boolean isAdminRegistered()   { return getOrCreate().isAdminRegistered(); }
+
+    /** Called once, at registration time only. */
+    public void registerAdmin(String username, String email, String passwordHash) {
+        AdminSettings s = getOrCreate();
+        s.setAdminUsername(username);
+        s.setAdminEmail(email);
+        s.setAdminPasswordHash(passwordHash);
+        s.setAdminRegistered(true);
+        repository.save(s);
     }
 
-    private void save() {
-        File file = new File(settingsPath);
-        file.getParentFile().mkdirs();
-        Map<String, Object> data = new HashMap<>();
-        data.put("adminUsername",     adminUsername);
-        data.put("adminPasswordHash", adminPasswordHash);
-        data.put("upiId",             upiId);
-        data.put("upiQrCode",         upiQrCode);
-        data.put("adminMobile",       adminMobile);
-        data.put("fast2smsApiKey",    fast2smsApiKey);
-        data.put("gstRate",           gstRate);
-        try { objectMapper.writerWithDefaultPrettyPrinter().writeValue(file, data); }
-        catch (IOException e) { throw new RuntimeException("Failed to save settings", e); }
-    }
-
+    /** Called when an already-logged-in admin updates username/password. */
     public void updateCredentials(String newUsername, String newPasswordHash) {
-        if (newUsername != null && !newUsername.isBlank()) this.adminUsername = newUsername;
-        if (newPasswordHash != null) this.adminPasswordHash = newPasswordHash;
-        save();
+        AdminSettings s = getOrCreate();
+        if (newUsername != null && !newUsername.isBlank()) s.setAdminUsername(newUsername);
+        if (newPasswordHash != null) s.setAdminPasswordHash(newPasswordHash);
+        repository.save(s);
     }
+
+    // ── Other settings (unchanged behavior, now DB-backed) ──────────
+    public String getUpiId()           { return getOrCreate().getUpiId(); }
+    public String getUpiQrCode()       { return getOrCreate().getUpiQrCode(); }
+    public String getAdminMobile()     { return getOrCreate().getAdminMobile(); }
+    public String getFast2smsApiKey()  { return getOrCreate().getFast2smsApiKey(); }
+    public int getGstRate()            { return getOrCreate().getGstRate(); }
 
     public void updateUpi(String newUpiId, String newUpiQrCode) {
-        this.upiId = newUpiId; this.upiQrCode = newUpiQrCode; save();
+        AdminSettings s = getOrCreate();
+        s.setUpiId(newUpiId);
+        s.setUpiQrCode(newUpiQrCode);
+        repository.save(s);
     }
 
     public void updateAdminMobile(String mobile) {
-        this.adminMobile = mobile; save();
+        AdminSettings s = getOrCreate();
+        s.setAdminMobile(mobile);
+        repository.save(s);
     }
 
     public void updateFast2smsKey(String key) {
-        this.fast2smsApiKey = key; save();
+        AdminSettings s = getOrCreate();
+        s.setFast2smsApiKey(key);
+        repository.save(s);
     }
 
     public void updateGstRate(int rate) {
-        this.gstRate = rate; save();
+        AdminSettings s = getOrCreate();
+        s.setGstRate(rate);
+        repository.save(s);
     }
 }

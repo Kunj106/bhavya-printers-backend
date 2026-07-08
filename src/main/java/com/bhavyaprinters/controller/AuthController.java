@@ -64,8 +64,16 @@ public class AuthController {
 
     @PostMapping("/admin/login")
     public ResponseEntity<?> adminLogin(@Valid @RequestBody AdminLoginInputDto input) {
-        if (input.getUsername().equals(settingsService.getAdminUsername())
-                && settingsService.hashPassword(input.getPassword()).equals(settingsService.getAdminPasswordHash())) {
+        if (!settingsService.isAdminRegistered()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponseDto("No admin account exists yet. Please register first."));
+        }
+
+        String identifier = input.getUsername(); // accepts username OR email
+        boolean matches = identifier.equalsIgnoreCase(settingsService.getAdminUsername())
+                || identifier.equalsIgnoreCase(settingsService.getAdminEmail());
+
+        if (matches && settingsService.hashPassword(input.getPassword()).equals(settingsService.getAdminPasswordHash())) {
             return ResponseEntity.ok(new AdminAuthResultDto(tokenService.generateToken(0, "admin"), "admin"));
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponseDto("Invalid credentials"));
@@ -127,6 +135,62 @@ public class AuthController {
 
         otpStore.remove(key);
         return ResponseEntity.ok(new AdminAuthResultDto(tokenService.generateToken(0, "admin"), "admin"));
+    }
+
+    @GetMapping("/admin/exists")
+    public ResponseEntity<?> adminExists() {
+        return ResponseEntity.ok(Map.of("exists", settingsService.isAdminRegistered()));
+    }
+
+    @PostMapping("/admin/register")
+    public ResponseEntity<?> registerAdmin(@Valid @RequestBody AdminRegisterInputDto input) {
+        if (settingsService.isAdminRegistered()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponseDto("Admin account already exists. Registration is closed."));
+        }
+        if (!input.getPassword().equals(input.getConfirmPassword())) {
+            return ResponseEntity.badRequest().body(new ErrorResponseDto("Passwords do not match"));
+        }
+
+        settingsService.registerAdmin(
+                input.getUsername(),
+                input.getEmail(),
+                settingsService.hashPassword(input.getPassword())
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new AdminAuthResultDto(tokenService.generateToken(0, "admin"), "admin"));
+    }
+
+    @PostMapping("/admin/forgot-password/send-otp")
+    public ResponseEntity<?> sendAdminForgotOtp(@RequestBody ForgotPasswordRequest request) {
+        if (!settingsService.isAdminRegistered()
+                || settingsService.getAdminEmail() == null
+                || !settingsService.getAdminEmail().equalsIgnoreCase(request.getEmail())) {
+            return ResponseEntity.badRequest().body(new ErrorResponseDto("Email not registered"));
+        }
+        String otp = otpService.generateOtp(request.getEmail());
+        emailService.sendOtp(request.getEmail(), otp);
+        return ResponseEntity.ok(new MessageResponseDto("OTP sent successfully"));
+    }
+
+    @PostMapping("/admin/forgot-password/verify-otp")
+    public ResponseEntity<?> verifyAdminForgotOtp(@RequestBody VerifyOtpRequest request) {
+        if (!otpService.verifyOtp(request.getEmail(), request.getOtp()))
+            return ResponseEntity.badRequest().body(new ErrorResponseDto("Invalid OTP"));
+        return ResponseEntity.ok(new MessageResponseDto("OTP Verified"));
+    }
+
+    @PostMapping("/admin/forgot-password/reset-password")
+    public ResponseEntity<?> resetAdminPassword(@RequestBody ResetPasswordRequest request) {
+        if (!otpService.isEmailVerified(request.getEmail()))
+            return ResponseEntity.badRequest().body(new ErrorResponseDto("Verify OTP first"));
+        if (!request.getEmail().equalsIgnoreCase(settingsService.getAdminEmail()))
+            return ResponseEntity.badRequest().body(new ErrorResponseDto("Email not registered"));
+
+        settingsService.updateCredentials(null, settingsService.hashPassword(request.getPassword()));
+        otpService.clearVerification(request.getEmail());
+        return ResponseEntity.ok(new MessageResponseDto("Password updated"));
     }
 
     // ─────────────────────────────────────────────────────────────────────
