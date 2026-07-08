@@ -4,6 +4,7 @@ import com.bhavyaprinters.entity.Otp;
 import com.bhavyaprinters.repository.OtpRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ public class OtpService
 {
     private final OtpRepository otpRepository;
 
+    @Transactional
     public String generateOtp(String email) {
 
         otpRepository.deleteByEmail(email);
@@ -34,6 +36,7 @@ public class OtpService
         return otp;
     }
 
+    @Transactional
     public boolean verifyOtp(String email, String otp) {
 
         Otp entity = otpRepository.findByEmail(email).orElse(null);
@@ -64,6 +67,7 @@ public class OtpService
 
     }
 
+    @Transactional
     public void clearVerification(String email) {
 
         otpRepository.deleteByEmail(email);
