@@ -94,6 +94,10 @@ public class OrderService {
         order.setUpiId(input.getUpiId());
         order.setStatus("Pending");
 
+        // COD orders are settled on delivery; gateway orders (UPI/Netbanking)
+        // start Pending and flip to Paid only once Razorpay confirms the payment.
+        order.setPaymentStatus("Pending");
+
         OrderDto saved = toDto(orderRepository.save(order));
 
         // Send SMS + WhatsApp confirmation to the bank
@@ -153,6 +157,8 @@ public class OrderService {
                 o.getPaymentMethod(),
                 o.getUpiId(),
                 o.getStatus(),
+                o.getPaymentStatus(),
+                o.getBankCode(),
                 o.getCreatedAt().toString()
         );
     }

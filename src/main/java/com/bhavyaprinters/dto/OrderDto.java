@@ -27,5 +27,7 @@ public class OrderDto {
     private String paymentMethod;
     private String upiId;
     private String status;
+    private String paymentStatus;
+    private String bankCode;
     private String createdAt;
 }

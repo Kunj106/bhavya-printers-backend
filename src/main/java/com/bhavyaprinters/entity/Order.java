@@ -76,6 +76,18 @@ public class Order {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "payment_status", nullable = false)
+    private String paymentStatus = "Pending"; // Pending, Paid, Failed
+
+    @Column(name = "razorpay_order_id")
+    private String razorpayOrderId;
+
+    @Column(name = "razorpay_payment_id")
+    private String razorpayPaymentId;
+
+    @Column(name = "bank_code")
+    private String bankCode; // populated for netbanking payments, e.g. SBIN, BARB0
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {
@@ -83,6 +95,9 @@ public class Order {
         }
         if (status == null) {
             status = "Pending";
+        }
+        if (paymentStatus == null) {
+            paymentStatus = "Pending";
         }
     }
 }
