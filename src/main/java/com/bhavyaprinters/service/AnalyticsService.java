@@ -1,9 +1,6 @@
 package com.bhavyaprinters.service;
 
-import com.bhavyaprinters.dto.DashboardStatsDto;
-import com.bhavyaprinters.dto.MonthlyGstDto;
-import com.bhavyaprinters.dto.MonthlyRevenueDto;
-import com.bhavyaprinters.dto.TopBankDto;
+import com.bhavyaprinters.dto.*;
 import com.bhavyaprinters.repository.BankRepository;
 import com.bhavyaprinters.repository.OrderRepository;
 import com.bhavyaprinters.repository.ProductRepository;
@@ -17,8 +14,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AnalyticsService {
 
-    private final OrderRepository   orderRepository;
-    private final BankRepository    bankRepository;
+    private final OrderRepository orderRepository;
+    private final BankRepository bankRepository;
     private final ProductRepository productRepository;
 
     public List<MonthlyRevenueDto> getMonthlyRevenue() {
@@ -41,56 +38,76 @@ public class AnalyticsService {
         )).toList();
     }
 
-    public List<MonthlyGstDto> getMonthlyGst() {
-        return orderRepository.findMonthlyGst().stream().map(row -> new MonthlyGstDto(
-                toInt(row[0]),
-                toInt(row[1]),
-                toDouble(row[2]),
-                toDouble(row[3]),
-                toDouble(row[4]),
-                toDouble(row[5]),
-                toInt(row[6])
-        )).toList();
+    /**
+     * Order-wise GST Report
+     */
+    public List<OrderGstDto> getMonthlyGst() {
+
+        return orderRepository.findOrderWiseGstReport()
+                .stream()
+                .map(row -> new OrderGstDto(
+                        toLong(row[0]),              // Order ID
+                        String.valueOf(row[1]),      // Bank Name
+                        toDouble(row[2]),            // Taxable Amount
+                        toDouble(row[3]),            // GST Amount
+                        toDouble(row[4]),            // Total Amount
+                        row[5] == null ? "" : row[5].toString() // Created At
+                ))
+                .toList();
     }
 
     public DashboardStatsDto getDashboardStats() {
+
         List<Object[]> statsList = orderRepository.findDashboardOrderStats();
+
         Object[] stats = (statsList != null && !statsList.isEmpty())
                 ? statsList.get(0)
                 : new Object[]{0, 0, 0, 0, 0, 0};
 
-        long totalBanks    = bankRepository.count();
+        long totalBanks = bankRepository.count();
         long totalProducts = productRepository.count();
 
         return new DashboardStatsDto(
-                toInt(stats[0]),            // totalOrders
-                toDouble(stats[1]),         // totalRevenue
-                (int) totalBanks,           // totalBanks
-                (int) totalProducts,        // totalProducts
-                toInt(stats[2]),            // deliveredOrders
-                toDouble(stats[3]),         // thisMonthRevenue
-                toInt(stats[4]),            // pendingOrders
-                toInt(stats[5])             // thisMonthOrders
+                toInt(stats[0]),
+                toDouble(stats[1]),
+                (int) totalBanks,
+                (int) totalProducts,
+                toInt(stats[2]),
+                toDouble(stats[3]),
+                toInt(stats[4]),
+                toInt(stats[5])
         );
     }
 
     private int toInt(Object val) {
         if (val == null) return 0;
-        if (val instanceof Number n) return n.intValue();
+
+        if (val instanceof Number n)
+            return n.intValue();
+
         return Integer.parseInt(val.toString());
     }
 
     private long toLong(Object val) {
         if (val == null) return 0L;
-        if (val instanceof Number n) return n.longValue();
+
+        if (val instanceof Number n)
+            return n.longValue();
+
         return Long.parseLong(val.toString());
     }
 
     private double toDouble(Object val) {
         if (val == null) return 0.0;
-        if (val instanceof BigDecimal bd) return bd.doubleValue();
-        if (val instanceof Number n) return n.doubleValue();
+
+        if (val instanceof BigDecimal bd)
+            return bd.doubleValue();
+
+        if (val instanceof Number n)
+            return n.doubleValue();
+
         return Double.parseDouble(val.toString());
     }
+
 
 }

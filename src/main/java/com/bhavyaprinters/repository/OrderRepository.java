@@ -11,7 +11,9 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findAllByOrderByCreatedAtDesc();
+
     List<Order> findByBankIdOrderByCreatedAtDesc(Long bankId);
+
     Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
 
     @Query(value = """
@@ -43,21 +45,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         """, nativeQuery = true)
     List<Object[]> findTopBanks();
 
+    /**
+     * Order-wise GST Report
+     * Returns every order for the admin GST report.
+     */
     @Query(value = """
         SELECT
-            MONTH(created_at)                                                         AS month,
-            YEAR(created_at)                                                          AS year,
-            SUM(subtotal)                                                             AS taxable_amount,
-            SUM(CASE WHEN gst_rate = 12 THEN gst_amount ELSE 0 END)                  AS gst12_amount,
-            SUM(CASE WHEN gst_rate = 18 THEN gst_amount ELSE 0 END)                  AS gst18_amount,
-            SUM(gst_amount)                                                           AS total_gst,
-            COUNT(*)                                                                  AS order_count
+            id,
+            bank_name,
+            subtotal,
+            gst_amount,
+            total,
+            created_at
         FROM orders
-        GROUP BY YEAR(created_at), MONTH(created_at)
-        ORDER BY YEAR(created_at) DESC, MONTH(created_at) DESC
-        LIMIT 24
+        ORDER BY created_at DESC
         """, nativeQuery = true)
-    List<Object[]> findMonthlyGst();
+    List<Object[]> findOrderWiseGstReport();
 
     @Query(value = """
         SELECT

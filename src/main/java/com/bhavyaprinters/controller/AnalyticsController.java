@@ -28,7 +28,7 @@ public class AnalyticsController {
     }
 
     @GetMapping("/monthly-gst")
-    public ResponseEntity<List<MonthlyGstDto>> getMonthlyGst() {
+    public ResponseEntity<List<OrderGstDto>> getMonthlyGst() {
         return ResponseEntity.ok(analyticsService.getMonthlyGst());
     }
 
