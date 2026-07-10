@@ -60,9 +60,7 @@ public class AnalyticsService {
 
                         toDouble(row[5]),
 
-                        toDouble(row[6]),
-
-                        row[1] == null ? "" : row[1].toString()
+                        toDouble(row[6])
                 ))
                 .toList();
     }
