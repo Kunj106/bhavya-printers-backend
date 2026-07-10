@@ -50,15 +50,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * Returns every order for the admin GST report.
      */
     @Query(value = """
-        SELECT
-            id,
-            bank_name,
-            subtotal,
-            gst_amount,
-            total,
-            created_at
-        FROM orders
-        ORDER BY created_at DESC
+            SELECT
+                id,
+                created_at,
+                bank_name,
+                branch_name,
+                subtotal,
+                gst_amount,
+                total
+            FROM orders
+            ORDER BY created_at DESC
         """, nativeQuery = true)
     List<Object[]> findOrderWiseGstReport();
 

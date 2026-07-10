@@ -46,12 +46,23 @@ public class AnalyticsService {
         return orderRepository.findOrderWiseGstReport()
                 .stream()
                 .map(row -> new OrderGstDto(
-                        toLong(row[0]),              // Order ID
-                        String.valueOf(row[1]),      // Bank Name
-                        toDouble(row[2]),            // Taxable Amount
-                        toDouble(row[3]),            // GST Amount
-                        toDouble(row[4]),            // Total Amount
-                        row[5] == null ? "" : row[5].toString() // Created At
+                        toLong(row[0]),
+
+                        row[1] == null
+                                ? null
+                                : ((java.sql.Timestamp) row[1]).toLocalDateTime(),
+
+                        String.valueOf(row[2]),
+
+                        String.valueOf(row[3]),
+
+                        toDouble(row[4]),
+
+                        toDouble(row[5]),
+
+                        toDouble(row[6]),
+
+                        row[1] == null ? "" : row[1].toString()
                 ))
                 .toList();
     }
