@@ -13,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
@@ -30,6 +31,15 @@ public class AuthController {
 
     @Value("${google.admin.email:}")
     private String adminGoogleEmail;
+
+    /**
+     * Your Google OAuth Client ID (the same one used by the frontend's
+     * Google Identity Services button). When set, every Google idToken is
+     * checked to make sure it was actually issued for THIS app, not some
+     * other Google-authenticated client. Leave blank only for local testing.
+     */
+    @Value("${google.client.id:}")
+    private String googleClientId;
 
     // ── In-memory OTP store ──────────────────────────────────────────────
     private record OtpEntry(String otp, long expiresAt) {}
@@ -53,7 +63,18 @@ public class AuthController {
             RestTemplate rest = new RestTemplate();
             String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken;
             Map<String, Object> payload = rest.getForObject(url, Map.class);
-            if (payload != null && payload.containsKey("email") && !payload.containsKey("error")) return payload;
+            if (payload == null || !payload.containsKey("email") || payload.containsKey("error")) {
+                return null;
+            }
+            // Make sure this token was issued for OUR app, not some other
+            // Google-authenticated client, before trusting its contents.
+            if (googleClientId != null && !googleClientId.isBlank()) {
+                Object aud = payload.get("aud");
+                if (aud == null || !googleClientId.equals(aud.toString())) {
+                    return null;
+                }
+            }
+            return payload;
         } catch (Exception ignored) {}
         return null;
     }
@@ -251,6 +272,44 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Bank not registered. Please complete registration.", "email", email, "name", payload.getOrDefault("name", email)));
         Bank bank = bankOpt.get();
         return ResponseEntity.ok(new BankAuthResultDto(tokenService.generateToken(bank.getId(), "bank"), "bank", bankService.toDto(bank)));
+    }
+
+    /**
+     * Completes registration for a bank whose Google account isn't linked
+     * to an existing bank yet. The idToken is re-verified here (never trust
+     * a client-supplied email) and the verified email becomes the bank's
+     * login email. A random password hash is stored since this account will
+     * only ever authenticate via Google — the bank can set a real password
+     * later from their profile if you want to support both.
+     */
+    @PostMapping("/bank/google-register")
+    public ResponseEntity<?> bankGoogleRegister(@Valid @RequestBody BankGoogleRegisterInputDto input) {
+        Map<String, Object> payload = verifyGoogleToken(input.getIdToken());
+        if (payload == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponseDto("Invalid Google token"));
+
+        String email = (String) payload.get("email");
+
+        if (bankService.existsByEmail(email))
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponseDto("An account with this email already exists. Please sign in instead."));
+
+        String randomPasswordHash = settingsService.hashPassword(UUID.randomUUID().toString());
+
+        BankDto bank = bankService.createBank(
+                input.getBankName(),
+                input.getBranchName(),
+                input.getGstNo(),
+                input.getPanNo(),
+                input.getAddress(),
+                input.getMobile(),
+                email,
+                randomPasswordHash
+        );
+
+        String token = tokenService.generateToken(bank.getId(), "bank");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BankAuthResultDto(token, "bank", bank));
     }
 
     /** Send OTP to bank's registered mobile */
