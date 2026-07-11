@@ -101,4 +101,24 @@ public class SettingsService {
         s.setGstRate(rate);
         repository.save(s);
     }
+
+    // ── Invoice branding ─────────────────────────────────────────────
+    // Both stored as base64 data URLs (e.g. "data:image/png;base64,...")
+    // so the invoice generator can drop them straight into iText without
+    // any extra file-system or blob-storage lookups.
+
+    public String getLetterheadImage() { return getOrCreate().getLetterheadImage(); }
+    public String getSignatureImage()  { return getOrCreate().getSignatureImage(); }
+
+    public void updateLetterhead(String base64Image) {
+        AdminSettings s = getOrCreate();
+        s.setLetterheadImage(base64Image);
+        repository.save(s);
+    }
+
+    public void updateSignature(String base64Image) {
+        AdminSettings s = getOrCreate();
+        s.setSignatureImage(base64Image);
+        repository.save(s);
+    }
 }

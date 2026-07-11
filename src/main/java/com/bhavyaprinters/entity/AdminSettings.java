@@ -1,5 +1,6 @@
 package com.bhavyaprinters.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -17,10 +18,24 @@ public class AdminSettings
     private boolean adminRegistered = false;
 
     private String upiId = "bhavyaprinters@sbi";
+
+    // Stored as a base64 data URL (e.g. "data:image/png;base64,...").
+    // LONGTEXT is required — the default VARCHAR(255) Hibernate would
+    // otherwise infer is far too small for an encoded image and would
+    // either truncate silently or fail with a "data too long" SQL error.
+    @Column(columnDefinition = "LONGTEXT")
     private String upiQrCode;
+
     private String adminMobile;
     private String fast2smsApiKey;
     private int gstRate = 18;
+
+    // Invoice branding — used to stamp every generated order invoice.
+    @Column(columnDefinition = "LONGTEXT")
+    private String letterheadImage;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String signatureImage;
 
     public Long getId() {
         return id;
@@ -100,5 +115,21 @@ public class AdminSettings
 
     public void setGstRate(int gstRate) {
         this.gstRate = gstRate;
+    }
+
+    public String getLetterheadImage() {
+        return letterheadImage;
+    }
+
+    public void setLetterheadImage(String letterheadImage) {
+        this.letterheadImage = letterheadImage;
+    }
+
+    public String getSignatureImage() {
+        return signatureImage;
+    }
+
+    public void setSignatureImage(String signatureImage) {
+        this.signatureImage = signatureImage;
     }
 }

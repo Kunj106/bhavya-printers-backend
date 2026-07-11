@@ -2,10 +2,8 @@ package com.bhavyaprinters.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
 public class SettingsDto {
     private String upiId;
@@ -14,4 +12,6 @@ public class SettingsDto {
     private boolean otpEnabled;
     private String adminUsername;
     private int gstRate;
+    private String letterheadImage;
+    private String signatureImage;
 }

@@ -18,6 +18,10 @@ public class SettingsController {
 
     private final SettingsService settingsService;
 
+    // Roughly caps a base64-encoded image at ~5MB of original file size
+    // (base64 inflates size by ~33%), matching the frontend's stated limit.
+    private static final int MAX_BASE64_LENGTH = 7_000_000;
+
     @GetMapping
     public ResponseEntity<SettingsDto> getSettings() {
         return ResponseEntity.ok(new SettingsDto(
@@ -26,7 +30,9 @@ public class SettingsController {
                 settingsService.getUpiQrCode(),
                 false,
                 settingsService.getAdminUsername(),
-                settingsService.getGstRate()
+                settingsService.getGstRate(),
+                settingsService.getLetterheadImage(),
+                settingsService.getSignatureImage()
         ));
     }
 
@@ -67,6 +73,12 @@ public class SettingsController {
         ));
     }
 
+    /**
+     * Accepts upiId plus an optional upiQrCode as a base64 data URL
+     * (e.g. "data:image/png;base64,..."), sent as plain JSON — not
+     * multipart. The frontend converts the selected file to base64
+     * client-side before calling this.
+     */
     @PutMapping("/upi")
     public ResponseEntity<?> updateUpi(@RequestBody Map<String, String> body) {
         String upiId = body.get("upiId");
@@ -77,7 +89,18 @@ public class SettingsController {
                     .body(new ErrorResponseDto("UPI ID is required"));
         }
 
-        settingsService.updateUpi(upiId.trim(), upiQrCode);
+        if (upiQrCode != null && upiQrCode.length() > MAX_BASE64_LENGTH) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponseDto("QR code image is too large (max 5 MB)"));
+        }
+
+        // Preserve the existing QR code if none was sent this time
+        // (e.g. the admin only updated the UPI ID text field).
+        String qrToSave = (upiQrCode != null && !upiQrCode.isBlank())
+                ? upiQrCode
+                : settingsService.getUpiQrCode();
+
+        settingsService.updateUpi(upiId.trim(), qrToSave);
         return ResponseEntity.ok(Map.of(
                 "upiId", settingsService.getUpiId(),
                 "upiQrCode", settingsService.getUpiQrCode() != null ? settingsService.getUpiQrCode() : "",
@@ -112,5 +135,41 @@ public class SettingsController {
                     .body(new ErrorResponseDto("gstRate must be 12 or 18"));
         settingsService.updateGstRate(gstRate);
         return ResponseEntity.ok(Map.of("gstRate", gstRate, "message", "GST rate updated"));
+    }
+
+    /**
+     * Uploads the invoice letterhead image (base64 data URL, JSON body).
+     * This image is stamped onto every generated order invoice.
+     */
+    @PutMapping("/letterhead")
+    public ResponseEntity<?> updateLetterhead(@RequestBody Map<String, String> body) {
+        String image = body.get("image");
+        if (image == null || image.isBlank())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponseDto("image is required"));
+        if (image.length() > MAX_BASE64_LENGTH)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponseDto("Letterhead image is too large (max 5 MB)"));
+
+        settingsService.updateLetterhead(image);
+        return ResponseEntity.ok(new MessageResponseDto("Letterhead updated successfully"));
+    }
+
+    /**
+     * Uploads the digital signature image (base64 data URL, JSON body).
+     * Stamped alongside the letterhead on every generated order invoice.
+     */
+    @PutMapping("/signature")
+    public ResponseEntity<?> updateSignature(@RequestBody Map<String, String> body) {
+        String image = body.get("image");
+        if (image == null || image.isBlank())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponseDto("image is required"));
+        if (image.length() > MAX_BASE64_LENGTH)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponseDto("Signature image is too large (max 5 MB)"));
+
+        settingsService.updateSignature(image);
+        return ResponseEntity.ok(new MessageResponseDto("Signature updated successfully"));
     }
 }
