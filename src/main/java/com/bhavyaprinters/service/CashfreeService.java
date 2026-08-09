@@ -23,17 +23,25 @@ public class CashfreeService
     private final CashfreeConfig cashfreeConfig;
 
     /**
-     * Creates a Cashfree Order and returns the payment_session_id.
+     * Creates a Cashfree Order and returns the payment session.
      */
     public CashfreeOrderResponse createOrder(Order order) {
 
-        log.info("Creating Cashfree Order for Internal Order ID : {}", order.getId());
+        log.info("Creating Cashfree Order for Internal Order ID: {}", order.getId());
+
+        // Clean phone number
+        String phone = order.getMobile().replaceAll("\\D", "");
+
+        // Remove leading country code (91) if present
+        if (phone.startsWith("91") && phone.length() == 12) {
+            phone = phone.substring(2);
+        }
 
         CustomerDetails customerDetails = new CustomerDetails(
                 String.valueOf(order.getBankId()),
                 order.getBankName(),
                 order.getEmail(),
-                order.getMobile()
+                phone
         );
 
         OrderMeta orderMeta = new OrderMeta(
@@ -64,7 +72,7 @@ public class CashfreeService
                         clientResponse ->
                                 clientResponse.bodyToMono(String.class)
                                         .flatMap(error -> {
-                                            log.error("Cashfree Error Response : {}", error);
+                                            log.error("Cashfree Error Response: {}", error);
                                             return Mono.error(new RuntimeException(error));
                                         })
                 )
@@ -75,15 +83,15 @@ public class CashfreeService
             throw new RuntimeException("Cashfree returned an empty response.");
         }
 
-        log.info("Cashfree Order Created Successfully.");
-        log.info("Cashfree Order ID : {}", response.getOrderId());
-        log.info("Payment Session ID : {}", response.getPaymentSessionId());
+        log.info("Cashfree Order Created Successfully");
+        log.info("Cashfree Order ID: {}", response.getOrderId());
+        log.info("Payment Session ID: {}", response.getPaymentSessionId());
 
         return response;
     }
 
     /**
-     * Returns the configured environment.
+     * Returns the configured Cashfree environment.
      */
     public String getEnvironment() {
         return cashfreeConfig.getEnvironment();
