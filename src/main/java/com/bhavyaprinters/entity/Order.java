@@ -79,11 +79,11 @@ public class Order {
     @Column(name = "payment_status", nullable = false)
     private String paymentStatus = "Pending"; // Pending, Paid, Failed
 
-    @Column(name = "razorpay_order_id")
-    private String razorpayOrderId;
+    @Column(name = "cashfree_order_id")
+    private String cashfreeOrderId;
 
-    @Column(name = "razorpay_payment_id")
-    private String razorpayPaymentId;
+    @Column(name = "cashfree_payment_id")
+    private String cashfreePaymentId;
 
     @Column(name = "bank_code")
     private String bankCode; // populated for netbanking payments, e.g. SBIN, BARB0

@@ -65,12 +65,10 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Source: https://mvnrepository.com/artifact/com.razorpay/razorpay-java -->
     <dependency>
-      <groupId>com.razorpay</groupId>
-      <artifactId>razorpay-java</artifactId>
-      <version>1.4.9</version>
-      <scope>compile</scope>
+      <groupId>com.cashfree.pg.java</groupId>
+      <artifactId>cashfree_pg</artifactId>
+      <version>6.0.2</version>
     </dependency>
 
 <!--    <dependency>-->

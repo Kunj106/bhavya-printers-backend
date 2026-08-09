@@ -14,7 +14,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByBankIdOrderByCreatedAtDesc(Long bankId);
 
-    Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
+    Optional<Order> findByCashfreeOrderId(String cashfreeOrderId);
 
     @Query(value = """
         SELECT

@@ -7,12 +7,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreatePaymentOrderResponseDto{
+public class PaymentOrderResponseDTO
+{
+    private String paymentSessionId;
 
-        private String paymentSessionId;
+    private String cashfreeOrderId;
 
-        private String orderId;
-
-        private String environment;
-
+    private String environment;
 }
