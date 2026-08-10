@@ -131,6 +131,16 @@ public class OrderService {
         });
     }
 
+    @Transactional
+    public boolean deleteOrder(Long id) {
+        if (!orderRepository.existsById(id)) {
+            return false;
+        }
+
+        orderRepository.deleteById(id);
+        return true;
+    }
+
     public OrderDto toDto(Order o) {
         List<OrderItemDto> items;
         try {

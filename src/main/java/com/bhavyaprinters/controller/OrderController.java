@@ -57,6 +57,24 @@ public class OrderController {
                         .body(new ErrorResponseDto("Order not found")));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteOrder(@PathVariable Long id) {
+
+        boolean deleted = orderService.deleteOrder(id);
+
+        if (!deleted) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponseDto("Order not found"));
+        }
+
+        return ResponseEntity.ok(
+                java.util.Map.of(
+                        "message", "Order deleted successfully",
+                        "orderId", id
+                )
+        );
+    }
+
     @GetMapping("/bank/{bankId}")
     public ResponseEntity<List<OrderDto>> getBankOrders(@PathVariable Long bankId) {
         return ResponseEntity.ok(orderService.getOrdersByBank(bankId));
