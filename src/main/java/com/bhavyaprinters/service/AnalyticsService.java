@@ -117,6 +117,4 @@ public class AnalyticsService {
 
         return Double.parseDouble(val.toString());
     }
-
-
 }

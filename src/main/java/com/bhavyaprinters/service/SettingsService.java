@@ -78,10 +78,11 @@ public class SettingsService {
     public int getGstRate()            { return getOrCreate().getGstRate(); }
 
     public void updateUpi(String newUpiId, String newUpiQrCode) {
-        AdminSettings s = getOrCreate();
-        s.setUpiId(newUpiId);
-        s.setUpiQrCode(newUpiQrCode);
-        repository.save(s);
+        getOrCreate();
+        repository.updateUpiSettings(
+                newUpiId,
+                newUpiQrCode
+        );
     }
 
     public void updateAdminMobile(String mobile) {
